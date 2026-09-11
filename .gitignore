@@ -1,0 +1,72 @@
+# ==========================================
+# Unreal Engine
+# ==========================================
+
+# Build artifacts
+Binaries/
+Build/*
+!Build/**/*.ico
+
+# Intermediate files
+Intermediate/
+
+# Saved files
+Saved/
+
+# Derived Data Cache
+DerivedDataCache/
+
+# Visual Studio
+.vs/
+.vscode/
+
+# Visual Studio generated files
+*.VC.db
+*.VC.opendb
+*.VC.VC.db
+*.suo
+*.user
+*.userprefs
+*.opensdf
+*.sdf
+*.ipch
+
+# Rider
+.idea/
+
+# Visual Studio Solution Cache
+*.sln.docstates
+
+# Unreal generated solution
+*.slnx
+
+# Logs
+*.log
+
+# Crash dumps
+*.dmp
+
+# Temporary files
+*.tmp
+
+# ==========================================
+# Ignore compiled plugin binaries
+# ==========================================
+
+Plugins/*/Binaries/
+Plugins/*/Intermediate/
+Plugins/*/Content/
+Content/
+
+# ==========================================
+# Ignore Mac/Linux files
+# ==========================================
+
+.DS_Store
+Thumbs.db
+
+# ==========================================
+# Keep these
+# ==========================================
+
+!.gitignore
