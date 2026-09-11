@@ -1,27 +1,65 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "Actors/PickupActor.h"
+#include "Components/SphereComponent.h"
+#include "Components/HighlightableMeshComponent.h"
+#include "Components/InventoryComponent.h"
 
-// Sets default values
 APickupActor::APickupActor()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+    PrimaryActorTick.bCanEverTick = false;
 
+    Sphere = CreateDefaultSubobject<USphereComponent>(
+        TEXT("Sphere")
+    );
+
+    RootComponent = Sphere;
+
+    Sphere->InitSphereRadius(50.f);
+
+    Sphere->SetCollisionProfileName(
+        TEXT("OverlapAllDynamic")
+    );
+
+    Mesh = CreateDefaultSubobject<UHighlightableMeshComponent>(
+        TEXT("Mesh")
+    );
+
+    Mesh->SetupAttachment(RootComponent);
 }
 
-// Called when the game starts or when spawned
-void APickupActor::BeginPlay()
+void APickupActor::Interact_Implementation(
+    AActor* Interactor)
 {
-	Super::BeginPlay();
-	
+    if (!Interactor || !ItemData || Quantity <= 0)
+    {
+        return;
+    }
+
+    UInventoryComponent* Inventory =
+        Interactor->FindComponentByClass<UInventoryComponent>();
+
+    if (!Inventory)
+    {
+        return;
+    }
+
+    if (Inventory->AddItem(ItemData, Quantity))
+    {
+        Destroy();
+    }
 }
 
-// Called every frame
-void APickupActor::Tick(float DeltaTime)
+void APickupActor::Highlight_Implementation()
 {
-	Super::Tick(DeltaTime);
-
+    if (Mesh)
+    {
+        IInteractable::Execute_Highlight(Mesh);
+    }
 }
 
+void APickupActor::UnHighlight_Implementation()
+{
+    if (Mesh)
+    {
+        IInteractable::Execute_UnHighlight(Mesh);
+    }
+}

@@ -22,4 +22,14 @@ class IInteractable
 
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	void Interact(AActor* Interactor);
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	void Highlight();
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	void UnHighlight();
+
 };

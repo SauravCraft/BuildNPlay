@@ -1,28 +1,65 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "InteractionComponent.generated.h"
 
-
-UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
-class UInteractionComponent : public UActorComponent
+UCLASS(ClassGroup = (Interaction), meta = (BlueprintSpawnableComponent))
+class INVENTORYSYSTEM_API UInteractionComponent : public UActorComponent
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
-public:	
-	// Sets default values for this component's properties
-	UInteractionComponent();
+public:
+
+    UInteractionComponent();
 
 protected:
-	// Called when the game starts
-	virtual void BeginPlay() override;
 
-public:	
-	// Called every frame
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+    virtual void BeginPlay() override;
 
-		
+public:
+
+    virtual void TickComponent(
+        float DeltaTime,
+        ELevelTick TickType,
+        FActorComponentTickFunction* ThisTickFunction
+    ) override;
+
+    /**
+     * Interact with the currently focused actor.
+     */
+    UFUNCTION(BlueprintCallable, Category = "Interaction")
+    void Interact();
+
+    /**
+     * Returns the actor currently being looked at.
+     */
+    UFUNCTION(BlueprintPure, Category = "Interaction")
+    AActor* GetCurrentInteractable() const;
+
+protected:
+
+    /**
+     * Maximum distance at which an actor can be interacted with.
+     */
+    UPROPERTY(
+        EditAnywhere,
+        BlueprintReadOnly,
+        Category = "Interaction"
+    )
+    float InteractionDistance = 300.f;
+
+private:
+
+    /**
+     * Performs the interaction line trace
+     * and updates the current interactable.
+     */
+    void UpdateInteractable();
+
+    /**
+     * Actor currently under the player's crosshair.
+     */
+    UPROPERTY()
+    TObjectPtr<AActor> CurrentInteractable = nullptr;
 };

@@ -1,28 +1,62 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "InventoryComponent.generated.h"
 
+class UItemData;
 
-UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
-class UInventoryComponent : public UActorComponent
+USTRUCT(BlueprintType)
+struct FInventoryItem
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
-public:	
-	// Sets default values for this component's properties
-	UInventoryComponent();
+    UPROPERTY(EditAnywhere, BlueprintReadOnly)
+    TObjectPtr<UItemData> ItemData = nullptr;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly)
+    int32 Quantity = 0;
+};
+
+UCLASS(ClassGroup = (Inventory), meta = (BlueprintSpawnableComponent))
+class INVENTORYSYSTEM_API UInventoryComponent : public UActorComponent
+{
+    GENERATED_BODY()
+
+public:
+
+    UInventoryComponent();
+
+    UFUNCTION(BlueprintCallable, Category = "Inventory")
+    bool AddItem(
+        UItemData* ItemData,
+        int32 Quantity
+    );
+
+    UFUNCTION(BlueprintCallable, Category = "Inventory")
+    bool RemoveItem(
+        UItemData* ItemData,
+        int32 Quantity
+    );
+
+    UFUNCTION(BlueprintPure, Category = "Inventory")
+    bool HasItem(
+        UItemData* ItemData,
+        int32 Quantity
+    ) const;
+
+    UFUNCTION(BlueprintPure, Category = "Inventory")
+    const TArray<FInventoryItem>& GetItems() const
+    {
+        return Items;
+    }
 
 protected:
-	// Called when the game starts
-	virtual void BeginPlay() override;
 
-public:	
-	// Called every frame
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+    virtual void BeginPlay() override;
 
-		
+private:
+
+    UPROPERTY()
+    TArray<FInventoryItem> Items;
 };

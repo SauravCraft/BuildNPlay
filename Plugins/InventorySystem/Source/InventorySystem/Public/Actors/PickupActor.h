@@ -1,26 +1,44 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Interfaces/Interactable.h"
 #include "PickupActor.generated.h"
 
+class USphereComponent;
+class UHighlightableMeshComponent;
+class UItemData;
+
 UCLASS()
-class APickupActor : public AActor
+class INVENTORYSYSTEM_API APickupActor
+    : public AActor
+    , public IInteractable
 {
-	GENERATED_BODY()
-	
-public:	
-	// Sets default values for this actor's properties
-	APickupActor();
+    GENERATED_BODY()
+
+public:
+
+    APickupActor();
+
+    virtual void Interact_Implementation(
+        AActor* Interactor
+    ) override;
+
+    virtual void Highlight_Implementation() override;
+
+    virtual void UnHighlight_Implementation() override;
 
 protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
 
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    TObjectPtr<USphereComponent> Sphere;
 
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    TObjectPtr<UHighlightableMeshComponent> Mesh;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
+    TObjectPtr<UItemData> ItemData;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
+    int32 Quantity = 1;
 };
