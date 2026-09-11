@@ -3,8 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Components/CapsuleComponent.h"
 #include "GameFramework/Pawn.h"
 #include "BNPPawn.generated.h"
+
+class UInputAction;
 
 UCLASS()
 class BUILDNPLAY_API ABNPPawn : public APawn
@@ -18,6 +21,20 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+
+	/** Root Capsule */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UCapsuleComponent> CapsuleComponent;
+
+	// Interaction 
+
+	UFUNCTION(BlueprintCallable)
+	void interact();
+
+	// Action 
+
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	UInputAction* InteractAction;
 
 public:	
 	// Called every frame
