@@ -2,6 +2,7 @@
 
 
 #include "BNPPawn.h"
+#include "Components/InteractionComponent.h"
 #include "EnhancedInputComponent.h"
 
 
@@ -68,6 +69,15 @@ void ABNPPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 void ABNPPawn::interact()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Interact Called"))
-}
+	UE_LOG(LogTemp, Warning, TEXT("Interact Called"));
 
+	UInteractionComponent* IC =
+		FindComponentByClass<UInteractionComponent>();
+
+	if (!IC)
+	{
+		return;
+	}
+
+	IC->Interact();
+}

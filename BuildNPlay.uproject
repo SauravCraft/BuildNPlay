@@ -90,6 +90,10 @@
 		{
 			"Name": "CurveExpression",
 			"Enabled": true
+		},
+		{
+			"Name": "InventorySystem",
+			"Enabled": true
 		}
 	]
 }

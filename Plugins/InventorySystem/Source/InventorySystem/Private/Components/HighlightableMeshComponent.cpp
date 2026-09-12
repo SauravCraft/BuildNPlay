@@ -11,9 +11,14 @@ UHighlightableMeshComponent::UHighlightableMeshComponent()
 void UHighlightableMeshComponent::Highlight_Implementation()
 {
     SetOverlayMaterial(HighlightMaterial);
+    UE_LOG(LogTemp, Warning, TEXT("Highlight Called "))
+
 }
 
 void UHighlightableMeshComponent::UnHighlight_Implementation()
 {
+
     SetOverlayMaterial(nullptr);
+    UE_LOG(LogTemp, Warning, TEXT("Unhighlight Called "))
+
 }

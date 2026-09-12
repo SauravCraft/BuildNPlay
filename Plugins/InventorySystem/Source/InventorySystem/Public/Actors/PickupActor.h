@@ -24,10 +24,6 @@ public:
         AActor* Interactor
     ) override;
 
-    virtual void Highlight_Implementation() override;
-
-    virtual void UnHighlight_Implementation() override;
-
 protected:
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)

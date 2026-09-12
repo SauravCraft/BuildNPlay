@@ -47,19 +47,3 @@ void APickupActor::Interact_Implementation(
         Destroy();
     }
 }
-
-void APickupActor::Highlight_Implementation()
-{
-    if (Mesh)
-    {
-        IInteractable::Execute_Highlight(Mesh);
-    }
-}
-
-void APickupActor::UnHighlight_Implementation()
-{
-    if (Mesh)
-    {
-        IInteractable::Execute_UnHighlight(Mesh);
-    }
-}

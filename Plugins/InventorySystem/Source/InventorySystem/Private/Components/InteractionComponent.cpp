@@ -33,28 +33,20 @@ void UInteractionComponent::TickComponent(
 
 void UInteractionComponent::UpdateInteractable()
 {
+
+
     APawn* Pawn = Cast<APawn>(GetOwner());
+    if (!Pawn) return;
 
-    if (!Pawn)
-    {
-        return;
-    }
-
-    APlayerController* PC =
-        Cast<APlayerController>(Pawn->GetController());
+    APlayerController* PC = Cast<APlayerController>(Pawn->GetController());
 
     if (!PC)
     {
         return;
     }
 
-    int32 ViewportX = 0;
-    int32 ViewportY = 0;
-
-    PC->GetViewportSize(
-        ViewportX,
-        ViewportY
-    );
+    int32 ViewportX, ViewportY;
+    PC->GetViewportSize(ViewportX, ViewportY);
 
     FVector WorldLocation;
     FVector WorldDirection;
@@ -68,25 +60,21 @@ void UInteractionComponent::UpdateInteractable()
         return;
     }
 
-    const FVector Start = WorldLocation;
-
-    const FVector End =
-        Start + WorldDirection * InteractionDistance;
+    FVector Start = WorldLocation;
+    FVector End = Start + WorldDirection * InteractionDistance;
 
     FHitResult Hit;
 
     FCollisionQueryParams Params;
-
     Params.AddIgnoredActor(Pawn);
 
-    const bool bHit =
-        GetWorld()->LineTraceSingleByChannel(
-            Hit,
-            Start,
-            End,
-            ECC_Visibility,
-            Params
-        );
+    bool bHit = GetWorld()->LineTraceSingleByChannel(
+        Hit,
+        Start,
+        End,
+        ECC_Visibility,
+        Params
+    );
 
     AActor* NewInteractable = nullptr;
 
@@ -94,7 +82,7 @@ void UInteractionComponent::UpdateInteractable()
     {
         AActor* HitActor = Hit.GetActor();
 
-        if (IsValid(HitActor) && HitActor->Implements<UInteractable>())
+        if (HitActor && HitActor->Implements<UInteractable>())
         {
             NewInteractable = HitActor;
         }
@@ -105,16 +93,26 @@ void UInteractionComponent::UpdateInteractable()
         return;
     }
 
-    if (IsValid(CurrentInteractable))
+    if (CurrentInteractable)
     {
-        IInteractable::Execute_UnHighlight(CurrentInteractable);
+        UE_LOG(LogTemp, Warning, TEXT("UnHighlight"));
+
+        UActorComponent* Highlightable =
+            CurrentInteractable->FindComponentByInterface(UInteractable::StaticClass());
+
+        IInteractable::Execute_UnHighlight(Highlightable);
     }
 
     CurrentInteractable = NewInteractable;
 
-    if (IsValid(CurrentInteractable))
+    if (CurrentInteractable)
     {
-        IInteractable::Execute_Highlight(CurrentInteractable);
+        UE_LOG(LogTemp, Warning, TEXT("Highlight"));
+
+        UActorComponent* Highlightable =
+            CurrentInteractable->FindComponentByInterface(UInteractable::StaticClass());
+
+        IInteractable::Execute_Highlight(Highlightable);
     }
 }
 

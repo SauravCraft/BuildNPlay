@@ -18,7 +18,8 @@ public class BuildNPlay : ModuleRules
 			"StateTreeModule",
 			"GameplayStateTreeModule",
 			"UMG",
-			"Slate"
+			"Slate",
+			"InventorySystem"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });
