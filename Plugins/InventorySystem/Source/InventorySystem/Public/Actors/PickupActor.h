@@ -5,8 +5,10 @@
 #include "Interfaces/Interactable.h"
 #include "PickupActor.generated.h"
 
-class USphereComponent;
 class UHighlightableMeshComponent;
+class USphereComponent;
+class UWidgetComponent;
+class UUserWidget;
 class UItemData;
 
 UCLASS()
@@ -19,22 +21,39 @@ class INVENTORYSYSTEM_API APickupActor
 public:
 
     APickupActor();
+    
+    virtual void BeginPlay() override;
 
-    virtual void Interact_Implementation(
-        AActor* Interactor
-    ) override;
+    // Interaction
+    virtual void Interact_Implementation(AActor* Interactor) override;
+
+    // Highlight / interaction prompt
+    virtual void Highlight_Implementation() override;
+    virtual void UnHighlight_Implementation() override;
 
 protected:
 
+    /** Pickup collision */
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     TObjectPtr<USphereComponent> Sphere;
 
+    /** Pickup mesh */
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     TObjectPtr<UHighlightableMeshComponent> Mesh;
 
+    /** Interaction prompt */
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
+    TObjectPtr<UWidgetComponent> InteractionWidget;
+
+    /** Widget Blueprint */
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interaction")
+    TSubclassOf<UUserWidget> InteractionWidgetClass;
+
+    /** Item definition */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
     TObjectPtr<UItemData> ItemData;
 
+    /** Stack quantity */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
     int32 Quantity = 1;
 };

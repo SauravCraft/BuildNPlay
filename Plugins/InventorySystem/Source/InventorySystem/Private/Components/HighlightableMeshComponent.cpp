@@ -1,6 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "Components/HighlightableMeshComponent.h"
 
 UHighlightableMeshComponent::UHighlightableMeshComponent()
@@ -8,17 +5,15 @@ UHighlightableMeshComponent::UHighlightableMeshComponent()
     PrimaryComponentTick.bCanEverTick = false;
 }
 
-void UHighlightableMeshComponent::Highlight_Implementation()
+void UHighlightableMeshComponent::Highlight()
 {
-    SetOverlayMaterial(HighlightMaterial);
-    UE_LOG(LogTemp, Warning, TEXT("Highlight Called "))
-
+    if (HighlightMaterial)
+    {
+        SetOverlayMaterial(HighlightMaterial);
+    }
 }
 
-void UHighlightableMeshComponent::UnHighlight_Implementation()
+void UHighlightableMeshComponent::UnHighlight()
 {
-
     SetOverlayMaterial(nullptr);
-    UE_LOG(LogTemp, Warning, TEXT("Unhighlight Called "))
-
 }
