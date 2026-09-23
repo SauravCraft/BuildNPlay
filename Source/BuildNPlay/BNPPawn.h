@@ -3,44 +3,71 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Components/CapsuleComponent.h"
 #include "GameFramework/Pawn.h"
 #include "BNPPawn.generated.h"
 
+class UCapsuleComponent;
 class UInputAction;
+class USaveGameData;
 
 UCLASS()
 class BUILDNPLAY_API ABNPPawn : public APawn
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
 public:
-	// Sets default values for this pawn's properties
-	ABNPPawn();
+
+    ABNPPawn();
 
 protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
 
-	/** Root Capsule */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<UCapsuleComponent> CapsuleComponent;
+    virtual void BeginPlay() override;
 
-	// Interaction 
+    virtual void EndPlay(
+        const EEndPlayReason::Type EndPlayReason) override;
 
-	UFUNCTION(BlueprintCallable)
-	void interact();
+    virtual void SetupPlayerInputComponent(
+        UInputComponent* PlayerInputComponent) override;
 
-	// Action 
 
-	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	UInputAction* InteractAction;
+    // =========================================================
+    // INPUT
+    // =========================================================
 
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
+    void interact();
 
-	// Called to bind functionality to input
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+    // =========================================================
+    // SAVE / LOAD
+    // =========================================================
+
+    void HandleSave(
+        USaveGameData* SaveGame);
+
+    void HandleLoad(
+        USaveGameData* SaveGame);
+
+
+public:
+
+    // =========================================================
+    // COMPONENTS
+    // =========================================================
+
+    UPROPERTY(
+        VisibleAnywhere,
+        BlueprintReadOnly,
+        Category = "Components")
+    UCapsuleComponent* CapsuleComponent;
+
+
+    // =========================================================
+    // INPUT ACTION
+    // =========================================================
+
+    UPROPERTY(
+        EditAnywhere,
+        BlueprintReadOnly,
+        Category = "Input")
+    UInputAction* InteractAction;
 };

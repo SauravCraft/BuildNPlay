@@ -39,7 +39,8 @@ public:
 
     void ActivateCheckpoint(FName CheckpointId);
 
-    FTransform LoadedPlayerTransform;
+    void ApplyLoadedPlayerTransform();
+
 
     // Save System 
 
@@ -65,5 +66,6 @@ private:
     UPROPERTY()
     TArray<FName> CurrentActiveCheckpoints;
     
+    FTransform LoadedPlayerTransform;
 
 };

@@ -1,83 +1,365 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "BNPPawn.h"
+
+#include "Components/CapsuleComponent.h"
 #include "Components/InteractionComponent.h"
+
 #include "EnhancedInputComponent.h"
+#include "InputAction.h"
+
+#include "Engine/CollisionProfile.h"
+
+#include "Subsystems/SaveManagerSubsystem.h"
+#include "SaveGames/SaveGameData.h"
+
+#include "Subsystems/RespawnSubsystem.h"
 
 
-// Sets default values
+// =========================================================
+// CONSTRUCTOR
+// =========================================================
+
 ABNPPawn::ABNPPawn()
 {
- 	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+    PrimaryActorTick.bCanEverTick = false;
 
-	// Create Capsules
-	CapsuleComponent = CreateDefaultSubobject<UCapsuleComponent>(TEXT("Capsule"));
 
-	// Make it the Root
-	SetRootComponent(CapsuleComponent);
+    // =====================================================
+    // CAPSULE
+    // =====================================================
 
-	// Size
-	CapsuleComponent->InitCapsuleSize(30.f, 86.f);
+    CapsuleComponent =
+        CreateDefaultSubobject<UCapsuleComponent>(
+            TEXT("Capsule"));
 
-	// Collision
-	CapsuleComponent->SetCollisionProfileName(UCollisionProfile::Pawn_ProfileName);
 
-	// Optional
-	CapsuleComponent->SetGenerateOverlapEvents(true);
+    // Make Capsule the root
+    SetRootComponent(CapsuleComponent);
 
+
+    // Capsule size
+    CapsuleComponent->InitCapsuleSize(
+        30.f,
+        86.f);
+
+
+    // Collision
+    CapsuleComponent->SetCollisionProfileName(
+        UCollisionProfile::Pawn_ProfileName);
+
+
+    // Overlap
+    CapsuleComponent->SetGenerateOverlapEvents(
+        true);
 }
 
-// Called when the game starts or when spawned
+
+// =========================================================
+// BEGIN PLAY
+// =========================================================
+
 void ABNPPawn::BeginPlay()
 {
-	Super::BeginPlay();
-	
+    Super::BeginPlay();
+
+
+    UE_LOG(
+        LogTemp,
+        Warning,
+        TEXT("BNPPawn BeginPlay")
+    );
+
+
+    // =====================================================
+    // SAVE / LOAD SYSTEM
+    // =====================================================
+
+    if (UGameInstance* GameInstance =
+        GetGameInstance())
+    {
+        USaveManagerSubsystem* Save =
+            GameInstance->GetSubsystem<
+            USaveManagerSubsystem>();
+
+
+        if (Save)
+        {
+            // ---------------------------------------------
+            // SAVE DELEGATE
+            // ---------------------------------------------
+
+            Save->OnGameSaved.AddUObject(
+                this,
+                &ABNPPawn::HandleSave);
+
+
+            // ---------------------------------------------
+            // LOAD DELEGATE
+            // ---------------------------------------------
+
+            Save->OnGameLoaded.AddUObject(
+                this,
+                &ABNPPawn::HandleLoad);
+
+
+            UE_LOG(
+                LogTemp,
+                Warning,
+                TEXT("BNPPawn: Save/Load Delegates Bound")
+            );
+
+
+            /*
+             * IMPORTANT
+             *
+             * GameInstance can load the SaveGame before
+             * BNPPawn is spawned.
+             *
+             * Therefore check whether SaveManager already
+             * has loaded data.
+             */
+
+            if (USaveGameData* LoadedSave =
+                Save->GetSaveGame())
+            {
+                UE_LOG(
+                    LogTemp,
+                    Warning,
+                    TEXT("BNPPawn: Existing Save Data Found")
+                );
+
+
+                HandleLoad(LoadedSave);
+            }
+        }
+        else
+        {
+            UE_LOG(
+                LogTemp,
+                Error,
+                TEXT("BNPPawn: SaveManagerSubsystem NOT FOUND")
+            );
+        }
+    }
+
+
+    // =====================================================
+    // RESPawn DATA
+    // =====================================================
+
+    /*
+     * We don't call RespawnSubsystem here.
+     *
+     * RespawnSubsystem is responsible for:
+     *
+     * - Checkpoints
+     * - Active checkpoints
+     * - Death respawn
+     *
+     * BNPPawn is responsible for:
+     *
+     * - Player transform save
+     * - Player transform load
+     */
 }
 
 
+// =========================================================
+// END PLAY
+// =========================================================
 
-// Called every frame
-void ABNPPawn::Tick(float DeltaTime)
+void ABNPPawn::EndPlay(
+    const EEndPlayReason::Type EndPlayReason)
 {
-	Super::Tick(DeltaTime);
+    /*
+     * Remove delegates.
+     *
+     * This is important because your RespawnSubsystem
+     * can destroy this Pawn and spawn a new one.
+     */
 
+    if (UGameInstance* GameInstance =
+        GetGameInstance())
+    {
+        if (USaveManagerSubsystem* Save =
+            GameInstance->GetSubsystem<
+            USaveManagerSubsystem>())
+        {
+            Save->OnGameSaved.RemoveAll(this);
+
+            Save->OnGameLoaded.RemoveAll(this);
+        }
+    }
+
+
+    Super::EndPlay(EndPlayReason);
 }
 
-// Called to bind functionality to input
-void ABNPPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+
+// =========================================================
+// INPUT
+// =========================================================
+
+void ABNPPawn::SetupPlayerInputComponent(
+    UInputComponent* PlayerInputComponent)
 {
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
-	UEnhancedInputComponent* EnhancedInput =
-		Cast<UEnhancedInputComponent>(PlayerInputComponent);
-
-	if (!EnhancedInput) return;
+    Super::SetupPlayerInputComponent(
+        PlayerInputComponent);
 
 
+    UEnhancedInputComponent* EnhancedInput =
+        Cast<UEnhancedInputComponent>(
+            PlayerInputComponent);
 
-	// Binding Input Function 
 
-	EnhancedInput->BindAction(
-		InteractAction,
-		ETriggerEvent::Started,
-		this,
-		&ABNPPawn::interact);
+    if (!EnhancedInput)
+    {
+        return;
+    }
 
+
+    // =====================================================
+    // INTERACTION
+    // =====================================================
+
+    if (InteractAction)
+    {
+        EnhancedInput->BindAction(
+            InteractAction,
+            ETriggerEvent::Started,
+            this,
+            &ABNPPawn::interact);
+    }
 }
+
+
+// =========================================================
+// INTERACTION
+// =========================================================
 
 void ABNPPawn::interact()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Interact Called"));
+    UE_LOG(
+        LogTemp,
+        Warning,
+        TEXT("BNPPawn: Interact Called")
+    );
 
-	UInteractionComponent* IC =
-		FindComponentByClass<UInteractionComponent>();
 
-	if (!IC)
-	{
-		return;
-	}
+    UInteractionComponent* IC =
+        FindComponentByClass<
+        UInteractionComponent>();
 
-	IC->Interact();
+
+    if (!IC)
+    {
+        UE_LOG(
+            LogTemp,
+            Warning,
+            TEXT("BNPPawn: InteractionComponent NOT FOUND")
+        );
+
+        return;
+    }
+
+
+    IC->Interact();
+}
+
+
+// =========================================================
+// SAVE
+// =========================================================
+
+void ABNPPawn::HandleSave(
+    USaveGameData* SaveGame)
+{
+    if (!SaveGame)
+    {
+        UE_LOG(
+            LogTemp,
+            Error,
+            TEXT("BNPPawn HandleSave: SaveGame is NULL")
+        );
+
+        return;
+    }
+
+
+    /*
+     * Save the complete Pawn transform.
+     *
+     * Includes:
+     *
+     * Location
+     * Rotation
+     * Scale
+     */
+
+    SaveGame->PlayerTransform =
+        GetActorTransform();
+
+
+    UE_LOG(
+        LogTemp,
+        Warning,
+        TEXT("BNPPawn PLAYER TRANSFORM SAVED: %s"),
+        *GetActorLocation().ToString()
+    );
+}
+
+
+// =========================================================
+// LOAD
+// =========================================================
+
+void ABNPPawn::HandleLoad(
+    USaveGameData* SaveGame)
+{
+    if (!SaveGame)
+    {
+        UE_LOG(
+            LogTemp,
+            Error,
+            TEXT("BNPPawn HandleLoad: SaveGame is NULL")
+        );
+
+        return;
+    }
+
+
+    // =====================================================
+    // VALIDATE TRANSFORM
+    // =====================================================
+
+    if (!SaveGame->PlayerTransform.IsValid())
+    {
+        UE_LOG(
+            LogTemp,
+            Warning,
+            TEXT("BNPPawn: Saved Player Transform is INVALID")
+        );
+
+        return;
+    }
+
+
+    // =====================================================
+    // RESTORE TRANSFORM
+    // =====================================================
+
+    SetActorTransform(
+        SaveGame->PlayerTransform,
+        false,
+        nullptr,
+        ETeleportType::TeleportPhysics);
+
+
+    UE_LOG(
+        LogTemp,
+        Warning,
+        TEXT("BNPPawn PLAYER RESTORED TO: %s"),
+        *GetActorLocation().ToString()
+    );
 }

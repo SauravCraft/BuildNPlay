@@ -1,56 +1,70 @@
 #include "Subsystems/RespawnSubsystem.h"
-#include "Actors/CheckpointBox.h"
 #include "Subsystems/SaveManagerSubsystem.h"
 #include "SaveGames/SaveGameData.h"
+
 #include "GameFramework/Pawn.h"
 #include "GameFramework/Controller.h"
+#include "GameFramework/PlayerController.h"
 
 void URespawnSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
     Super::Initialize(Collection);
 
-
     if (USaveManagerSubsystem* Save =
         GetGameInstance()->GetSubsystem<USaveManagerSubsystem>())
     {
-       
-
         Save->OnGameSaved.AddUObject(
             this,
             &URespawnSubsystem::HandleSave);
-        UE_LOG(LogTemp, Warning, TEXT("Binding Load Delegate"));
+
         Save->OnGameLoaded.AddUObject(
             this,
             &URespawnSubsystem::HandleLoad);
 
-        UE_LOG(LogTemp, Warning, TEXT("Respawn Bound To Save Delegates"));
-
-
-
+        UE_LOG(LogTemp, Warning,
+            TEXT("Respawn Bound To Save Delegates"));
     }
     else
     {
-        UE_LOG(LogTemp, Error, TEXT("Save Subsystem NOT FOUND"));
+        UE_LOG(LogTemp, Error,
+            TEXT("Save Subsystem NOT FOUND"));
     }
 }
+
 
 void URespawnSubsystem::Deinitialize()
 {
-    Super::Deinitialize();
+    if (USaveManagerSubsystem* Save =
+        GetGameInstance()->GetSubsystem<USaveManagerSubsystem>())
+    {
+        Save->OnGameSaved.RemoveUObject(
+            this,
+            &URespawnSubsystem::HandleSave);
 
-    UE_LOG(LogTemp, Log, TEXT("Respawn Subsystem Deinitialized"));
+        Save->OnGameLoaded.RemoveUObject(
+            this,
+            &URespawnSubsystem::HandleLoad);
+    }
+
+    UE_LOG(LogTemp, Log,
+        TEXT("Respawn Subsystem Deinitialized"));
+
+    Super::Deinitialize();
 }
 
-void URespawnSubsystem::SetCheckpoint(const FTransform& Checkpoint)
+
+void URespawnSubsystem::SetCheckpoint(
+    const FTransform& Checkpoint)
 {
     if (!Checkpoint.IsValid())
     {
-        UE_LOG(LogTemp, Warning, TEXT("Invalid Checkpoint Transform"));
+        UE_LOG(LogTemp, Warning,
+            TEXT("Invalid Checkpoint Transform"));
+
         return;
     }
-     
-    // Avoid broadcasting if the checkpoint hasn't changed 
 
+    // Don't save/broadcast if nothing changed
     if (CurrentCheckpoint.Equals(Checkpoint))
     {
         return;
@@ -62,49 +76,55 @@ void URespawnSubsystem::SetCheckpoint(const FTransform& Checkpoint)
         TEXT("Checkpoint Updated: %s"),
         *CurrentCheckpoint.GetLocation().ToString());
 
-    USaveManagerSubsystem* SaveSubsystem =
-        GetGameInstance()->GetSubsystem<USaveManagerSubsystem>();
-    SaveSubsystem->SaveGame();
-
+    if (USaveManagerSubsystem* SaveSubsystem =
+        GetGameInstance()->GetSubsystem<USaveManagerSubsystem>())
+    {
+        SaveSubsystem->SaveGame();
+    }
 
     OnCheckpointActivated.Broadcast(CurrentCheckpoint);
 }
 
 
-
-
-
-
-bool URespawnSubsystem::IsCheckpointActivated(FName CheckpointId) const
+bool URespawnSubsystem::IsCheckpointActivated(
+    FName CheckpointId) const
 {
-    return CurrentActiveCheckpoints.Contains(CheckpointId);
-}
-
-void URespawnSubsystem::ActivateCheckpoint(FName CheckpointId)
-{
-    CurrentActiveCheckpoints.AddUnique(CheckpointId);
+    return CurrentActiveCheckpoints.Contains(
+        CheckpointId);
 }
 
 
-
-
-
-
-
-bool URespawnSubsystem::RespawnPlayer(APawn* Pawn , const FTransform& SpawnTransform)
+void URespawnSubsystem::ActivateCheckpoint(
+    FName CheckpointId)
 {
-    UE_LOG(LogTemp, Warning, TEXT("Respawn System Call"));
+    CurrentActiveCheckpoints.AddUnique(
+        CheckpointId);
+}
 
+
+bool URespawnSubsystem::RespawnPlayer(
+    APawn* Pawn,
+    const FTransform& SpawnTransform)
+{
+    UE_LOG(LogTemp, Warning,
+        TEXT("Respawn System Call"));
 
     if (!Pawn)
     {
+        UE_LOG(LogTemp, Error,
+            TEXT("Respawn failed: Pawn is null"));
+
         return false;
     }
 
-    AController* Controller = Pawn->GetController();
+    AController* Controller =
+        Pawn->GetController();
 
     if (!Controller)
     {
+        UE_LOG(LogTemp, Error,
+            TEXT("Respawn failed: Controller is null"));
+
         return false;
     }
 
@@ -112,45 +132,56 @@ bool URespawnSubsystem::RespawnPlayer(APawn* Pawn , const FTransform& SpawnTrans
 
     if (!World)
     {
+        UE_LOG(LogTemp, Error,
+            TEXT("Respawn failed: World is null"));
+
         return false;
     }
 
-    FVector SpawnLocation = SpawnTransform.GetLocation();
-    FRotator SpawnRotation = SpawnTransform.GetRotation().Rotator();
 
+    // Save reference to old pawn
+    APawn* OldPawn = Pawn;
+
+
+    // Remove controller from old pawn
     Controller->UnPossess();
 
-    if (Pawn)
-    {
-        Pawn->SetActorHiddenInGame(true);
-        Pawn->SetActorEnableCollision(false);
-        Pawn->DisableInput(nullptr);
-        Pawn->SetLifeSpan(0.1f);
-    }
 
+    // Spawn new pawn at checkpoint
     FActorSpawnParameters SpawnParams;
+
     SpawnParams.SpawnCollisionHandlingOverride =
         ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
     APawn* NewPawn = World->SpawnActor<APawn>(
-        Pawn->GetClass(),
-        SpawnLocation,
-        SpawnRotation,
+        OldPawn->GetClass(),
+        SpawnTransform,
         SpawnParams);
 
     if (!NewPawn)
     {
+        UE_LOG(LogTemp, Error,
+            TEXT("Respawn failed: Could not spawn new pawn"));
+
         return false;
     }
 
+
+    // Possess new pawn
     Controller->Possess(NewPawn);
-    
+
+
     UE_LOG(LogTemp, Warning,
         TEXT("Pawn After Possess = %s"),
         *NewPawn->GetActorLocation().ToString());
+
+
+    // Remove old pawn AFTER successful possession
+    OldPawn->Destroy();
+
+
     return true;
 }
-
 
 
 void URespawnSubsystem::HandleSave(USaveGameData* SaveGame)
@@ -160,28 +191,69 @@ void URespawnSubsystem::HandleSave(USaveGameData* SaveGame)
         return;
     }
 
+    // ============================================
+    // SAVE PLAYER TRANSFORM
+    // ============================================
+
+    if (UWorld* World = GetWorld())
+    {
+        if (APlayerController* PC =
+            World->GetFirstPlayerController())
+        {
+            if (APawn* PlayerPawn = PC->GetPawn())
+            {
+                SaveGame->PlayerTransform =
+                    PlayerPawn->GetActorTransform();
+
+                UE_LOG(
+                    LogTemp,
+                    Warning,
+                    TEXT("RespawnSystem: Saved Player Transform: %s"),
+                    *PlayerPawn->GetActorLocation().ToString()
+                );
+            }
+            else
+            {
+                UE_LOG(
+                    LogTemp,
+                    Warning,
+                    TEXT("RespawnSystem: Player Pawn is NULL")
+                );
+            }
+        }
+    }
+
+
+    // ============================================
+    // SAVE CHECKPOINT
+    // ============================================
+
     SaveGame->CurrentCheckpointTransform =
         CurrentCheckpoint;
+
     SaveGame->ActiveCheckpoints =
         CurrentActiveCheckpoints;
 
-    UE_LOG(LogTemp, Log,
+
+    UE_LOG(
+        LogTemp,
+        Warning,
         TEXT("Saved Checkpoint: %s"),
-        *CurrentCheckpoint.GetLocation().ToString());
+        *CurrentCheckpoint.GetLocation().ToString()
+    );
 
-    UE_LOG(LogTemp, Log,
+
+    UE_LOG(
+        LogTemp,
+        Warning,
         TEXT("Active Checkpoints: %d"),
-        CurrentActiveCheckpoints.Num());
-
-    for (const FName& Checkpoint : CurrentActiveCheckpoints)
-    {
-        UE_LOG(LogTemp, Log,
-            TEXT(" - %s"),
-            *Checkpoint.ToString());
-    }
+        CurrentActiveCheckpoints.Num()
+    );
 }
 
-void URespawnSubsystem::HandleLoad(USaveGameData* SaveGame)
+
+void URespawnSubsystem::HandleLoad(
+    USaveGameData* SaveGame)
 {
     if (!SaveGame)
     {
@@ -190,25 +262,32 @@ void URespawnSubsystem::HandleLoad(USaveGameData* SaveGame)
 
     CurrentCheckpoint =
         SaveGame->CurrentCheckpointTransform;
+
     CurrentActiveCheckpoints =
         SaveGame->ActiveCheckpoints;
-    LoadedPlayerTransform =
-        SaveGame->PlayerTransform;
 
-    UE_LOG(LogTemp, Log,
-        TEXT("Loaded Checkpoint: %s"),
-        *CurrentCheckpoint.GetLocation().ToString());
 
-    UE_LOG(LogTemp, Log,
+    UE_LOG(
+        LogTemp,
+        Warning,
+        TEXT("Respawn Data Loaded")
+    );
+
+
+    UE_LOG(
+        LogTemp,
+        Warning,
+        TEXT("Loaded Checkpoint: X=%.3f Y=%.3f Z=%.3f"),
+        CurrentCheckpoint.GetLocation().X,
+        CurrentCheckpoint.GetLocation().Y,
+        CurrentCheckpoint.GetLocation().Z
+    );
+
+
+    UE_LOG(
+        LogTemp,
+        Warning,
         TEXT("Loaded Active Checkpoints: %d"),
-        CurrentActiveCheckpoints.Num());
-
-    for (const FName& Checkpoint : CurrentActiveCheckpoints)
-    {
-        UE_LOG(LogTemp, Log,
-            TEXT(" - %s"),
-            *Checkpoint.ToString());
-    }
-
-    OnCheckpointLoaded.Broadcast();
+        CurrentActiveCheckpoints.Num()
+    );
 }

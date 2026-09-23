@@ -21,6 +21,7 @@ public class BuildNPlay : ModuleRules
 			"Slate",
 			"InventorySystem",
 			"SaveSystem",
+			"RespawnSystem",
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });

@@ -94,6 +94,14 @@
 		{
 			"Name": "InventorySystem",
 			"Enabled": true
+		},
+		{
+			"Name": "RespawnSystem",
+			"Enabled": true
+		},
+		{
+			"Name": "SaveSystem",
+			"Enabled": true
 		}
 	]
 }

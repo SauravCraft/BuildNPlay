@@ -27,9 +27,6 @@ bool USaveManagerSubsystem::SaveGame()
                 USaveGameData::StaticClass()));
     }
 
-    // Save player transform
-    //CurrentSaveGame->PlayerTransform = PlayerTransform;
-
     // Let other systems save their data
     OnGameSaved.Broadcast(CurrentSaveGame);
     UE_LOG(LogTemp, Warning, TEXT(" OnGameSave Broadcast "));
