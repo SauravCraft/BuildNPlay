@@ -60,6 +60,9 @@ public:
 
 private:
 
+    FDelegateHandle OnGameSavedHandle;
+    FDelegateHandle OnGameLoadedHandle;
+
     UPROPERTY()
     FTransform CurrentCheckpoint;
 

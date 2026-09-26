@@ -13,11 +13,11 @@ void URespawnSubsystem::Initialize(FSubsystemCollectionBase& Collection)
     if (USaveManagerSubsystem* Save =
         GetGameInstance()->GetSubsystem<USaveManagerSubsystem>())
     {
-        Save->OnGameSaved.AddUObject(
+        OnGameSavedHandle = Save->OnGameSaved.AddUObject(
             this,
             &URespawnSubsystem::HandleSave);
 
-        Save->OnGameLoaded.AddUObject(
+        OnGameLoadedHandle = Save->OnGameLoaded.AddUObject(
             this,
             &URespawnSubsystem::HandleLoad);
 
@@ -37,17 +37,18 @@ void URespawnSubsystem::Deinitialize()
     if (USaveManagerSubsystem* Save =
         GetGameInstance()->GetSubsystem<USaveManagerSubsystem>())
     {
-        Save->OnGameSaved.RemoveUObject(
-            this,
-            &URespawnSubsystem::HandleSave);
+        if (OnGameSavedHandle.IsValid())
+        {
+            Save->OnGameSaved.Remove(OnGameSavedHandle);
+            OnGameSavedHandle.Reset();
+        }
 
-        Save->OnGameLoaded.RemoveUObject(
-            this,
-            &URespawnSubsystem::HandleLoad);
+        if (OnGameLoadedHandle.IsValid())
+        {
+            Save->OnGameLoaded.Remove(OnGameLoadedHandle);
+            OnGameLoadedHandle.Reset();
+        }
     }
-
-    UE_LOG(LogTemp, Log,
-        TEXT("Respawn Subsystem Deinitialized"));
 
     Super::Deinitialize();
 }
@@ -102,29 +103,20 @@ void URespawnSubsystem::ActivateCheckpoint(
 }
 
 
-bool URespawnSubsystem::RespawnPlayer(
-    APawn* Pawn,
-    const FTransform& SpawnTransform)
+bool URespawnSubsystem::RespawnPlayer(APawn* Pawn, const FTransform& SpawnTransform)
 {
-    UE_LOG(LogTemp, Warning,
-        TEXT("Respawn System Call"));
+    UE_LOG(LogTemp, Warning, TEXT("Respawn System Call"));
+
 
     if (!Pawn)
     {
-        UE_LOG(LogTemp, Error,
-            TEXT("Respawn failed: Pawn is null"));
-
         return false;
     }
 
-    AController* Controller =
-        Pawn->GetController();
+    AController* Controller = Pawn->GetController();
 
     if (!Controller)
     {
-        UE_LOG(LogTemp, Error,
-            TEXT("Respawn failed: Controller is null"));
-
         return false;
     }
 
@@ -132,54 +124,42 @@ bool URespawnSubsystem::RespawnPlayer(
 
     if (!World)
     {
-        UE_LOG(LogTemp, Error,
-            TEXT("Respawn failed: World is null"));
-
         return false;
     }
 
+    FVector SpawnLocation = SpawnTransform.GetLocation();
+    FRotator SpawnRotation = SpawnTransform.GetRotation().Rotator();
 
-    // Save reference to old pawn
-    APawn* OldPawn = Pawn;
-
-
-    // Remove controller from old pawn
     Controller->UnPossess();
 
+    if (Pawn)
+    {
+        Pawn->SetActorHiddenInGame(true);
+        Pawn->SetActorEnableCollision(false);
+        Pawn->DisableInput(nullptr);
+        Pawn->SetLifeSpan(0.1f);
+    }
 
-    // Spawn new pawn at checkpoint
     FActorSpawnParameters SpawnParams;
-
     SpawnParams.SpawnCollisionHandlingOverride =
         ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
     APawn* NewPawn = World->SpawnActor<APawn>(
-        OldPawn->GetClass(),
-        SpawnTransform,
+        Pawn->GetClass(),
+        SpawnLocation,
+        SpawnRotation,
         SpawnParams);
 
     if (!NewPawn)
     {
-        UE_LOG(LogTemp, Error,
-            TEXT("Respawn failed: Could not spawn new pawn"));
-
         return false;
     }
 
-
-    // Possess new pawn
     Controller->Possess(NewPawn);
-
 
     UE_LOG(LogTemp, Warning,
         TEXT("Pawn After Possess = %s"),
         *NewPawn->GetActorLocation().ToString());
-
-
-    // Remove old pawn AFTER successful possession
-    OldPawn->Destroy();
-
-
     return true;
 }
 
@@ -190,39 +170,6 @@ void URespawnSubsystem::HandleSave(USaveGameData* SaveGame)
     {
         return;
     }
-
-    // ============================================
-    // SAVE PLAYER TRANSFORM
-    // ============================================
-
-    if (UWorld* World = GetWorld())
-    {
-        if (APlayerController* PC =
-            World->GetFirstPlayerController())
-        {
-            if (APawn* PlayerPawn = PC->GetPawn())
-            {
-                SaveGame->PlayerTransform =
-                    PlayerPawn->GetActorTransform();
-
-                UE_LOG(
-                    LogTemp,
-                    Warning,
-                    TEXT("RespawnSystem: Saved Player Transform: %s"),
-                    *PlayerPawn->GetActorLocation().ToString()
-                );
-            }
-            else
-            {
-                UE_LOG(
-                    LogTemp,
-                    Warning,
-                    TEXT("RespawnSystem: Player Pawn is NULL")
-                );
-            }
-        }
-    }
-
 
     // ============================================
     // SAVE CHECKPOINT
